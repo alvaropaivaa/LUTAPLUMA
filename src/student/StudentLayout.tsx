@@ -46,6 +46,15 @@ export default function StudentLayout() {
   // a carteirinha tem topo claro, então a faixa fica sempre visível nela
   const statusBarSolid = scrolled || loc.pathname.startsWith('/app/carteirinha');
 
+  // Safari do iPhone pinta a barra do relógio com a cor de fundo da página (não usa o theme-color):
+  // no app do aluno o fundo do documento fica azul (o conteúdo continua claro por cima)
+  useEffect(() => {
+    const els = [document.documentElement, document.body];
+    const prev = els.map((e) => e.style.backgroundColor);
+    els.forEach((e) => (e.style.backgroundColor = '#041335'));
+    return () => els.forEach((e, i) => (e.style.backgroundColor = prev[i]));
+  }, []);
+
   // Novidade (aviso, check-in aberto, mensalidade, pagamento, graduação) -> notificação do sistema, se o aluno ativou.
   // A store sincroniza entre abas, então o que o professor faz no painel chega aqui na hora.
   const alerts = useAlerts(viewer);
