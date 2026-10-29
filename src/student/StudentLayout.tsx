@@ -35,6 +35,17 @@ export default function StudentLayout() {
     scroller.current?.scrollTo({ top: 0 });
   }, [loc.pathname]);
 
+  // Rolou a tela: a faixa atrás do relógio do iPhone fica azul para o texto branco continuar legível
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [loc.pathname]);
+  // a carteirinha tem topo claro, então a faixa fica sempre visível nela
+  const statusBarSolid = scrolled || loc.pathname.startsWith('/app/carteirinha');
+
   // Novidade (aviso, check-in aberto, mensalidade, pagamento, graduação) -> notificação do sistema, se o aluno ativou.
   // A store sincroniza entre abas, então o que o professor faz no painel chega aqui na hora.
   const alerts = useAlerts(viewer);
@@ -96,6 +107,13 @@ export default function StudentLayout() {
 
   return (
     <div className="app-lv relative min-h-dvh bg-paper sm:bg-paper-2">
+      {/* Faixa azul atrás do relógio/bateria do iPhone (app instalado). No topo das telas o próprio cabeçalho azul fica ali. */}
+      <div
+        className={clsx(
+          'pointer-events-none fixed inset-x-0 top-0 z-40 h-[env(safe-area-inset-top)] bg-navy-900/90 backdrop-blur-md transition-opacity duration-200',
+          statusBarSolid ? 'opacity-100' : 'opacity-0',
+        )}
+      />
       {/* Sem moldura: no computador o app é uma coluna centralizada, como no celular */}
       <div ref={scroller} className="relative mx-auto min-h-dvh w-full max-w-[480px] bg-paper sm:shadow-[0_0_0_1px_var(--color-line)]">
         <div className="pb-28">
