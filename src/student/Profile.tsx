@@ -173,13 +173,15 @@ function NotifyRow({ student }: { student: Student }) {
   const iosBrowser = perm === 'unsupported' && isIOS() && !isStandalone();
   const text = on
     ? 'Ativadas neste aparelho'
-    : perm === 'denied'
-      ? 'Bloqueadas no navegador — libere nas configurações'
-      : iosBrowser
-        ? 'No iPhone, instale o app para ativar'
-        : perm === 'unsupported'
-          ? 'Este navegador não aceita notificações'
-          : 'Avisos, check-in aberto e lembrete da mensalidade';
+    : perm === 'insecure'
+      ? 'Precisa abrir o app por um endereço https://'
+      : perm === 'denied'
+        ? 'Bloqueadas no navegador — libere nas configurações'
+        : iosBrowser
+          ? 'No iPhone, instale o app para ativar'
+          : perm === 'unsupported'
+            ? 'Este navegador não aceita notificações'
+            : 'Avisos, check-in aberto e lembrete da mensalidade';
   return (
     <li className="flex items-center gap-3 px-4 py-3.5">
       <BellRing className="size-[18px] shrink-0 text-faint" />
@@ -213,28 +215,37 @@ function InstallRow() {
   const install = useInstall();
   const toast = useToast();
   const [steps, setSteps] = useState(false);
-  // sem pedido de instalação disponível (ex.: navegador do computador) a linha não aparece
-  if (!install.installed && !install.canPrompt && !install.iosSteps) return null;
 
   const onInstall = async () => {
     if (install.iosSteps) return setSteps(true);
     if (await install.prompt()) toast('App instalado na tela inicial.');
   };
 
+  // sem botão de instalar, a linha explica o porquê (nunca fica em branco)
+  const text = install.installed
+    ? 'App instalado'
+    : install.inFrame
+      ? 'Abra o app numa aba própria para instalar'
+      : install.insecure
+        ? 'Precisa abrir o app por um endereço https://'
+        : install.canPrompt || install.iosSteps
+          ? 'Abre direto, como um aplicativo'
+          : 'No menu do navegador (⋮), toque em "Instalar app"';
+
   return (
     <li className="flex items-center gap-3 px-4 py-3.5">
       <Download className="size-[18px] shrink-0 text-faint" />
       <div className="min-w-0 flex-1">
         <p className="text-sm text-ink">Instalar na tela inicial</p>
-        <p className={clsx('text-[11px]', install.installed ? 'text-emerald-600' : 'text-muted')}>{install.installed ? 'App instalado' : 'Abre direto, como um aplicativo'}</p>
+        <p className={clsx('text-[11px]', install.installed ? 'text-emerald-600' : install.insecure ? 'text-amber-600' : 'text-muted')}>{text}</p>
       </div>
       {install.installed ? (
         <Check className="size-4 text-emerald-600" strokeWidth={2.5} />
-      ) : (
+      ) : install.canPrompt || install.iosSteps ? (
         <Button size="sm" onClick={onInstall}>
           Instalar
         </Button>
-      )}
+      ) : null}
       <InstallSheet open={steps} onClose={() => setSteps(false)} />
     </li>
   );

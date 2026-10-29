@@ -5,11 +5,14 @@
  * instalados neste navegador; o sw.js já trata eventos "push" para quando houver backend.
  */
 
-export type NotifyState = NotificationPermission | 'unsupported';
+/** 'insecure': aberto sem HTTPS (ex.: celular pelo IP do computador) — o navegador bloqueia PWA e notificações */
+export type NotifyState = NotificationPermission | 'unsupported' | 'insecure';
+
+export const isInsecure = () => typeof window !== 'undefined' && !window.isSecureContext;
 
 export const notifySupported = () => typeof window !== 'undefined' && 'Notification' in window;
 
-export const notifyPermission = (): NotifyState => (notifySupported() ? Notification.permission : 'unsupported');
+export const notifyPermission = (): NotifyState => (isInsecure() ? 'insecure' : notifySupported() ? Notification.permission : 'unsupported');
 
 export const isStandalone = () =>
   typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || (navigator as Navigator & { standalone?: boolean }).standalone === true);
@@ -17,6 +20,7 @@ export const isStandalone = () =>
 export const isIOS = () => typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
 
 export async function askNotifyPermission(): Promise<NotifyState> {
+  if (isInsecure()) return 'insecure';
   if (!notifySupported()) return 'unsupported';
   try {
     return await Notification.requestPermission();

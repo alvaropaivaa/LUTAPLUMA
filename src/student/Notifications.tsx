@@ -86,7 +86,9 @@ function PushCard({ student }: { student: Student }) {
 
   const text = on
     ? 'Avisos, check-in e lembretes chegam como notificação do celular.'
-    : perm === 'denied'
+    : perm === 'insecure'
+      ? 'O navegador só libera notificações quando o app é aberto por um endereço https://.'
+      : perm === 'denied'
       ? 'Bloqueadas no navegador. Libere nas configurações do site.'
       : iosBrowser
         ? 'No iPhone, instale o app na tela inicial para ativar.'

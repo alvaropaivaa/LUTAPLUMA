@@ -5,7 +5,7 @@
  * evento: o app mostra o passo a passo do Safari.
  */
 import { useEffect, useState } from 'react';
-import { isIOS, isStandalone } from './notify';
+import { isInsecure, isIOS, isStandalone } from './notify';
 
 type PromptEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> };
 
@@ -36,12 +36,17 @@ export function useInstall() {
   }, []);
 
   const installed = isStandalone();
+  const insecure = isInsecure();
   return {
     installed,
+    /** sem HTTPS (celular pelo IP do computador): o navegador não deixa instalar */
+    insecure,
+    /** dentro da prévia do painel (iframe) não dá para instalar */
+    inFrame: typeof window !== 'undefined' && window.self !== window.top,
     /** Android/Chrome: dá para abrir o pedido de instalação do sistema */
     canPrompt: !installed && deferred !== null,
     /** iPhone no Safari: precisa do passo a passo "Adicionar à Tela de Início" */
-    iosSteps: !installed && isIOS(),
+    iosSteps: !installed && !insecure && isIOS(),
     async prompt() {
       if (!deferred) return false;
       const ev = deferred;
