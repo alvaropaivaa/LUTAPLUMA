@@ -29,8 +29,15 @@ import { brl, brlInt } from '../lib/belts';
 import { Avatar, BeltBar, Logo } from '../components/bits';
 import { Card, CardHeader, EmptyState, NoData, PageHeader, Segmented, usePopover } from '../components/ui';
 import { Bars, FlatLine, Sparkline } from '../components/charts';
+import { usePhone } from '../lib/useMedia';
+import MobileHome from './MobileHome';
 
-export default function Overview() {
+/** No celular o professor vê um início próprio (aula de agora, pendências e atalhos); no computador, o painel completo */
+export default function OverviewPage() {
+  return usePhone() ? <MobileHome /> : <Overview />;
+}
+
+function Overview() {
   const { db, me } = useStore();
   const { today, nowMin, time } = useNow();
   const [range, setRange] = useState<'30' | '7'>('30');

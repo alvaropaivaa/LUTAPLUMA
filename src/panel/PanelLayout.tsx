@@ -1,8 +1,29 @@
 import { Fragment, Suspense, useEffect, useState, type ComponentType, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
-import { ArrowRight, ChevronsUpDown, Clock, Database, LogOut, Menu, RotateCcw, X } from 'lucide-react';
+import {
+  ArrowRight,
+  CalendarDays,
+  ChevronsUpDown,
+  ClipboardCheck,
+  Clock,
+  Database,
+  House,
+  LayoutGrid,
+  LogOut,
+  Megaphone,
+  RotateCcw,
+  Smartphone,
+  Trophy,
+  Users,
+  Wallet,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import { useNow, useStore } from '../lib/store';
+import { PHONE_QUERY, useMedia } from '../lib/useMedia';
+import type { Student } from '../lib/types';
 import { classesOn, enrolled, nextClassFor, sessionInfo, studentStatus } from '../lib/selectors';
 import { timeToMin, weekday, WEEKDAYS } from '../lib/dates';
 import { Avatar, Logo } from '../components/bits';
@@ -93,25 +114,15 @@ function NowCard() {
   );
 }
 
-function useMedia(query: string) {
-  const [match, setMatch] = useState(() => window.matchMedia(query).matches);
-  useEffect(() => {
-    const mq = window.matchMedia(query);
-    const on = () => setMatch(mq.matches);
-    mq.addEventListener('change', on);
-    return () => mq.removeEventListener('change', on);
-  }, [query]);
-  return match;
-}
-
 export default function PanelLayout() {
   const { db, me, logout, resetDemo, startEmpty } = useStore();
   const { today, nowMin } = useNow();
   const navigate = useNavigate();
   const loc = useLocation();
   const toast = useToast();
-  // Celular: menu vira gaveta. Tablet: barra fina, abre por cima. Desktop: abre empurrando o conteúdo.
-  const isMobile = useMedia('(max-width: 767px)');
+  // Celular: modo app (abas embaixo + "Mais"). Tablet: barra fina, abre por cima. Desktop: abre empurrando o conteúdo.
+  const isMobile = useMedia(PHONE_QUERY);
+  const [more, setMore] = useState(false);
   const isWide = useMedia('(min-width: 1180px)');
   const [pinned, setPinned] = useState(() => localStorage.getItem(OPEN_KEY) !== '0');
   const [overlay, setOverlay] = useState(false);
@@ -129,6 +140,7 @@ export default function PanelLayout() {
   useEffect(() => {
     window.scrollTo({ top: 0 });
     setOverlay(false);
+    setMore(false);
   }, [loc.pathname]);
 
   const overdue = enrolled(db).filter((s) => studentStatus(s, today) === 'atrasado').length;
@@ -194,7 +206,7 @@ export default function PanelLayout() {
         className={clsx(
           'fixed inset-y-0 left-0 z-50 flex flex-col bg-navy-900 text-white transition-[width,transform] duration-300 ease-out',
           open ? 'w-[248px]' : 'w-[72px]',
-          isMobile && !open && 'invisible -translate-x-full',
+          isMobile && 'hidden',
           !isWide && open && 'shadow-2xl',
         )}
       >
@@ -286,23 +298,40 @@ export default function PanelLayout() {
         />
 
         {isMobile && (
-          <div className="relative flex items-center gap-3 px-5 pt-[calc(env(safe-area-inset-top)+0.75rem)] text-white">
-            <button onClick={toggle} className="-ml-2 grid size-10 place-items-center rounded-full hover:bg-white/10" aria-label="Abrir menu">
-              <Menu className="size-5" />
+          <div className="relative flex items-center gap-3 px-5 pt-[calc(env(safe-area-inset-top)+0.875rem)] text-white">
+            <Logo size={36} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-semibold">Easy Wrestling</span>
+              <span className="block text-[11px] text-white/55">Painel do professor</span>
+            </span>
+            <button onClick={() => setMore(true)} aria-label="Menu da conta" className="rounded-full">
+              <Avatar name={me.name} src={me.photo} size={36} className="bg-brand-500! text-white! ring-2 ring-white/15" />
             </button>
-            <Logo size={30} />
-            <span className="text-sm font-semibold">Easy Wrestling</span>
           </div>
         )}
 
         <BandCtx.Provider value={setBand}>
-          <div className="@container relative mx-auto max-w-[1280px] px-4 pt-6 pb-10 sm:px-8 sm:pt-8 lg:px-12">
+          <div className={clsx('@container relative mx-auto max-w-[1280px] px-4 pt-6 sm:px-8 sm:pt-8 lg:px-12', isMobile ? 'pb-28' : 'pb-10')}>
             <Suspense fallback={<div className="min-h-[60vh]" />}>
               <Outlet />
             </Suspense>
           </div>
         </BandCtx.Provider>
       </main>
+
+      {isMobile && (
+        <>
+          <PhoneNav onMore={() => setMore(true)} moreActive={more || ['/painel/grade', '/painel/graduacao', '/painel/avisos', '/painel/app'].some((p) => loc.pathname.startsWith(p))} liveNow={liveNow} overdue={overdue} />
+          <MoreSheet
+            open={more}
+            onClose={() => setMore(false)}
+            me={me}
+            onReset={() => (setMore(false), setConfirm('reset'))}
+            onEmpty={() => (setMore(false), setConfirm('empty'))}
+            onSignOut={signOut}
+          />
+        </>
+      )}
 
       <ConfirmDialog
         open={confirm === 'reset'}
@@ -332,5 +361,123 @@ export default function PanelLayout() {
         }}
       />
     </div>
+  );
+}
+
+/* ======================================================================
+   Celular: abas embaixo (como o app do aluno) e folha "Mais"
+   ====================================================================== */
+
+function PhoneNav({ onMore, moreActive, liveNow, overdue }: { onMore: () => void; moreActive: boolean; liveNow: boolean; overdue: number }) {
+  const tab = (to: string, label: string, Icon: LucideIcon, opts: { end?: boolean; dot?: boolean } = {}) => (
+    <NavLink
+      to={to}
+      end={opts.end}
+      className={({ isActive }) => clsx('flex flex-1 flex-col items-center gap-1 pt-2.5 pb-2 text-[11px] font-medium transition', isActive && !moreActive ? 'text-brand-600' : 'text-faint')}
+    >
+      {({ isActive }) => (
+        <>
+          <span className="relative grid h-6 w-12 place-items-center">
+            <Icon className="size-5" strokeWidth={isActive && !moreActive ? 2.2 : 1.8} />
+            {opts.dot && <span className="absolute top-0 right-2.5 size-2 rounded-full bg-brand-500 ring-2 ring-white" />}
+          </span>
+          {label}
+        </>
+      )}
+    </NavLink>
+  );
+
+  return (
+    <nav className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-line bg-white">
+      <div className="flex items-end px-2">
+        {tab('/painel', 'Início', House, { end: true })}
+        {tab('/painel/alunos', 'Alunos', Users, { dot: overdue > 0 })}
+        <div className="flex flex-1 justify-center">
+          <NavLink to="/painel/chamada" className="-mt-6 mb-1.5 flex flex-col items-center gap-1 text-[11px] font-medium text-brand-600" aria-label="Chamada do dia">
+            <span className="relative grid size-14 place-items-center rounded-full bg-brand-500 text-white ring-4 ring-white transition active:scale-95">
+              <ClipboardCheck className="size-6" strokeWidth={2} />
+              {liveNow && (
+                <span className="absolute top-0.5 right-0.5 flex size-3">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex size-3 rounded-full bg-emerald-400 ring-2 ring-white" />
+                </span>
+              )}
+            </span>
+            Chamada
+          </NavLink>
+        </div>
+        {tab('/painel/financeiro', 'Financeiro', Wallet)}
+        <button onClick={onMore} className={clsx('flex flex-1 flex-col items-center gap-1 pt-2.5 pb-2 text-[11px] font-medium transition', moreActive ? 'text-brand-600' : 'text-faint')}>
+          <span className="grid h-6 w-12 place-items-center">
+            <LayoutGrid className="size-5" strokeWidth={moreActive ? 2.2 : 1.8} />
+          </span>
+          Mais
+        </button>
+      </div>
+    </nav>
+  );
+}
+
+const MORE_LINKS: { to: string; label: string; sub: string; icon: LucideIcon }[] = [
+  { to: '/painel/grade', label: 'Grade de aulas', sub: 'Horários e turmas', icon: CalendarDays },
+  { to: '/painel/graduacao', label: 'Graduação', sub: 'Faixas e ranking', icon: Trophy },
+  { to: '/painel/avisos', label: 'Mural de avisos', sub: 'Publicar no app', icon: Megaphone },
+  { to: '/painel/app', label: 'App do aluno', sub: 'Ver como o aluno', icon: Smartphone },
+];
+
+function MoreSheet({ open, onClose, me, onReset, onEmpty, onSignOut }: { open: boolean; onClose: () => void; me: Student; onReset: () => void; onEmpty: () => void; onSignOut: () => void }) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-end">
+      <div className="absolute inset-0 bg-ink/40 animate-fade-in" onClick={onClose} />
+      <div className="pb-safe relative w-full rounded-t-[28px] bg-white px-4 pt-3 animate-slide-up">
+        <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-line-strong" />
+        <button onClick={onClose} className="absolute top-4 right-4 grid size-9 place-items-center rounded-full bg-paper text-muted" aria-label="Fechar">
+          <X className="size-4" />
+        </button>
+
+        <div className="flex items-center gap-3 px-1 pb-4">
+          <Avatar name={me.name} src={me.photo} size={44} className="bg-brand-500! text-white!" />
+          <div className="min-w-0">
+            <p className="truncate text-[15px] font-semibold text-ink">{me.name}</p>
+            <p className="truncate text-xs text-muted">{me.email}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          {MORE_LINKS.map((l) => (
+            <Link key={l.to} to={l.to} onClick={onClose} className="flex flex-col gap-3 rounded-2xl bg-paper p-4 transition active:scale-[0.98]">
+              <span className="grid size-10 place-items-center rounded-full bg-white text-brand-500 ring-1 ring-line">
+                <l.icon className="size-[18px]" />
+              </span>
+              <span>
+                <span className="block text-sm font-semibold text-ink">{l.label}</span>
+                <span className="block text-[11px] text-muted">{l.sub}</span>
+              </span>
+            </Link>
+          ))}
+        </div>
+
+        <div className="mt-3 mb-4 divide-y divide-line overflow-hidden rounded-2xl ring-1 ring-line">
+          <button onClick={onReset} className="flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm text-ink-2 active:bg-paper">
+            <RotateCcw className="size-4 text-muted" /> Restaurar dados de exemplo
+          </button>
+          <button onClick={onEmpty} className="flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm text-ink-2 active:bg-paper">
+            <Database className="size-4 text-muted" /> Começar do zero
+          </button>
+          <button onClick={onSignOut} className="flex w-full items-center gap-3 px-4 py-3.5 text-left text-sm font-medium text-rose-600 active:bg-rose-50">
+            <LogOut className="size-4" /> Sair da conta
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }

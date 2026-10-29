@@ -1,5 +1,5 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
+import { Navigate, NavLink, Outlet, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import clsx from 'clsx';
 import { CalendarDays, CircleUserRound, Fingerprint, History, House, type LucideIcon } from 'lucide-react';
 import { useStore } from '../lib/store';
@@ -92,6 +92,8 @@ export default function StudentLayout() {
   };
 
   if (!viewer) return null;
+  // App instalado abre em /app: o professor vai para o painel (que no celular já fica no modo app)
+  if (viewer.role === 'professor' && !isPreview) return <Navigate to="/painel" replace />;
 
   const tab = (t: (typeof TABS)[number]) => {
     const inside = t.also?.some((p) => loc.pathname.startsWith(p)) ?? false;
