@@ -1,0 +1,59 @@
+/*
+ * App do aluno com a mesma identidade do site público:
+ * fonte Google Sans Flex, azul-marinho profundo, laranja da marca e cartões com sombra suave.
+ * As cores do Tailwind são variáveis CSS, então trocar aqui recolore todas as telas do app.
+ * `.app-lv` fica na raiz do app (StudentLayout) e nas folhas que abrem por cima (BottomSheet).
+ */
+.app-lv {
+  --color-navy-900: oklch(20% 0.07 262);
+  --color-navy-800: oklch(26% 0.07 262);
+  --color-brand-400: oklch(75% 0.16 52);
+  --color-brand-500: oklch(69% 0.19 46);
+  --color-brand-600: oklch(62% 0.18 44);
+  --color-ink: oklch(17% 0.03 262);
+  --color-ink-2: oklch(37% 0.03 262);
+  --color-paper: oklch(97.2% 0.004 262);
+  --color-paper-2: oklch(95% 0.006 262);
+  --color-line: oklch(92.5% 0.008 262);
+  --font-sans: "Google Sans Flex Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Google Sans Flex Variable", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+}
+.app-lv :is(h1, h2, h3, h4) {
+  letter-spacing: -0.01em;
+}
+
+/* cartão branco com sombra suave (no lugar da borda cinza) */
+.app-lv .card-soft {
+  background: #fff;
+  border-radius: 24px;
+  box-shadow:
+    0 1px 2px rgb(10 15 30 / 0.04),
+    0 12px 32px -16px rgb(10 15 30 / 0.18);
+}
+
+/* foto da academia por baixo do azul (topo das telas) */
+.app-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.3;
+  mix-blend-mode: luminosity;
+  pointer-events: none;
+}
+.app-photo-fade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--color-navy-900) 35%, transparent), var(--color-navy-900) 92%);
+}
+
+/* rótulo em caixa alta, como no site */
+.app-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}

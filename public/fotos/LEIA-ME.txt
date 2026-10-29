@@ -1,0 +1,14 @@
+Fotos do site (página inicial)
+
+São fotos reais da academia, exceto final.jpg (foto temporária de banco de imagens).
+Para trocar uma foto, salve a nova imagem aqui com o MESMO nome:
+
+  hero.jpg        capa do banner (atleta em frente ao painel Easy Wrestling)
+  adulto.jpg      turma adulta (cards "Turmas" e "Por que treinar com a gente")
+  kids.jpg        turma kids
+  competicao.jpg  luta em competição (Time Pro)
+  final.jpg       card "Open Mat" (temporária, troque por uma foto real)
+  medalha.png     medalha da seção "Do primeiro treino ao lugar mais alto do pódio"
+                  (PNG com fundo transparente)
+
+Não precisa mexer no código: o site pega os arquivos automaticamente.

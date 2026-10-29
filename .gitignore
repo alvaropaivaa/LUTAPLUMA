@@ -1,0 +1,11 @@
+# dependências e build (recriados com npm install / npm run build)
+node_modules
+dist
+.vite
+
+# sistema e editor
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.*
